@@ -1,0 +1,673 @@
+openapi: 3.0.3
+info:
+  title: Steercraft
+  version: 0.1.0
+  description: >-
+    Mission-operations MIPS loop converting sensor measurement into inference,
+    prediction and authorised steering for science and exploration campaigns.
+  x-product-slug: ai-gov-steercraft
+  x-source: ai-in-gov/ai_at_NASA/
+servers:
+  - url: https://api.example.com
+tags:
+  - name: Missions
+    description: Mission and campaign registration
+  - name: Measurements
+    description: Sensor stream intake
+  - name: Sentinels
+    description: Point-of-collection models with false-positive budgets
+  - name: Insights
+    description: Class, correlation, anomaly and association discoveries
+  - name: Predictions
+    description: Predictions with staleness marking
+  - name: Steering
+    description: Authorised steering proposals and uplink queue
+  - name: Reporting
+    description: MIPS audit and drift reports
+paths:
+  /v1/missions:
+    get:
+      operationId: listMissions
+      tags: [Missions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        "200":
+          description: Missions page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ListEnvelopeMission' }
+    post:
+      operationId: createMission
+      tags: [Missions]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MissionCreate' }
+      responses:
+        "201":
+          description: Mission created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataEnvelopeMission' }
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+  /v1/missions/{missionId}:
+    parameters:
+      - name: missionId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: getMission
+      tags: [Missions]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Mission
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataEnvelopeMission' }
+        "404":
+          $ref: '#/components/responses/NotFound'
+  /v1/measurements:
+    get:
+      operationId: listMeasurements
+      tags: [Measurements]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: missionId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Measurements page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ListEnvelopeMeasurement' }
+    post:
+      operationId: ingestMeasurement
+      tags: [Measurements]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MeasurementCreate' }
+      responses:
+        "201":
+          description: Measurement accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataEnvelopeMeasurement' }
+  /v1/sentinels:
+    get:
+      operationId: listSentinels
+      tags: [Sentinels]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        "200":
+          description: Sentinels page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ListEnvelopeSentinelModel' }
+    post:
+      operationId: publishSentinel
+      tags: [Sentinels]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SentinelModelCreate' }
+      responses:
+        "201":
+          description: Sentinel published
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataEnvelopeSentinelModel' }
+  /v1/sentinels/{sentinelId}/alerts:
+    parameters:
+      - name: sentinelId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: raiseSentinelAlert
+      tags: [Sentinels]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SentinelAlertCreate' }
+      responses:
+        "201":
+          description: Alert recorded or suppressed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataEnvelopeSentinelAlert' }
+  /v1/insights:
+    get:
+      operationId: listInsights
+      tags: [Insights]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: discoveryType
+          in: query
+          schema: { type: string, enum: [class, correlation, anomaly, association] }
+      responses:
+        "200":
+          description: Insights page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ListEnvelopeInsight' }
+    post:
+      operationId: registerInsight
+      tags: [Insights]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InsightCreate' }
+      responses:
+        "201":
+          description: Insight registered
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataEnvelopeInsight' }
+  /v1/predictions:
+    get:
+      operationId: listPredictions
+      tags: [Predictions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        "200":
+          description: Predictions page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ListEnvelopePrediction' }
+    post:
+      operationId: createPrediction
+      tags: [Predictions]
+      security:
+        - ApiKeyAuth: []
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PredictionCreate' }
+      responses:
+        "201":
+          description: Prediction created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataEnvelopePrediction' }
+  /v1/steering-actions:
+    get:
+      operationId: listSteeringActions
+      tags: [Steering]
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: status
+          in: query
+          schema: { type: string, enum: [proposed, approved, rejected, queued, executed] }
+      responses:
+        "200":
+          description: Steering actions page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ListEnvelopeSteeringAction' }
+    post:
+      operationId: proposeSteeringAction
+      tags: [Steering]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SteeringActionCreate' }
+      responses:
+        "201":
+          description: Steering proposed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataEnvelopeSteeringAction' }
+  /v1/steering-actions/{actionId}/decision:
+    parameters:
+      - name: actionId
+        in: path
+        required: true
+        schema: { type: string }
+    post:
+      operationId: decideSteeringAction
+      tags: [Steering]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision: { type: string, enum: [approve, reject] }
+                rationale: { type: string }
+      responses:
+        "200":
+          description: Decision recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataEnvelopeSteeringAction' }
+  /v1/reports/mips-audit:
+    get:
+      operationId: getMipsAuditReport
+      tags: [Reporting]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: missionId
+          in: query
+          schema: { type: string }
+        - name: period
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: MIPS chain audit summary
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DataEnvelopeMipsAuditReport' }
+components:
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+  responses:
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    UnprocessableEntity:
+      description: Validation failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Problem' }
+  schemas:
+    ResponseMeta:
+      type: object
+      required: [requestId, timestamp]
+      properties:
+        requestId: { type: string }
+        timestamp: { type: string, format: date-time }
+    Problem:
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+
+    Mission:
+      type: object
+      required: [id, name, defaultAuthorisationTier]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        domain: { type: string, enum: [planetary, earth_science, astrophysics, other] }
+        defaultAuthorisationTier: { type: string, enum: [recommend_only, supervised, bounded_autonomy] }
+        exportControlTag: { type: string }
+    MissionCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        domain: { type: string, enum: [planetary, earth_science, astrophysics, other] }
+        defaultAuthorisationTier: { type: string, enum: [recommend_only, supervised, bounded_autonomy] }
+        exportControlTag: { type: string }
+    Measurement:
+      type: object
+      required: [id, missionId, sensorId, observedAt]
+      properties:
+        id: { type: string }
+        missionId: { type: string }
+        sensorId: { type: string }
+        observedAt: { type: string, format: date-time }
+        downlinkDelaySeconds: { type: integer }
+        payloadRef: { type: string }
+    MeasurementCreate:
+      type: object
+      required: [missionId, sensorId, observedAt]
+      properties:
+        missionId: { type: string }
+        sensorId: { type: string }
+        observedAt: { type: string, format: date-time }
+        downlinkDelaySeconds: { type: integer }
+        payloadRef: { type: string }
+    SentinelModel:
+      type: object
+      required: [id, missionId, name, falsePositiveBudget]
+      properties:
+        id: { type: string }
+        missionId: { type: string }
+        name: { type: string }
+        falsePositiveBudget: { type: number, format: float }
+        status: { type: string, enum: [draft, active, retired] }
+        driftScore: { type: number, format: float }
+    SentinelModelCreate:
+      type: object
+      required: [missionId, name, falsePositiveBudget]
+      properties:
+        missionId: { type: string }
+        name: { type: string }
+        falsePositiveBudget: { type: number, format: float }
+    SentinelAlert:
+      type: object
+      required: [id, sentinelId, status]
+      properties:
+        id: { type: string }
+        sentinelId: { type: string }
+        measurementId: { type: string }
+        status: { type: string, enum: [raised, suppressed, escalated] }
+        suppressionReason: { type: string }
+        predictedImpact: { type: string }
+    SentinelAlertCreate:
+      type: object
+      required: [measurementId]
+      properties:
+        measurementId: { type: string }
+        predictedImpact: { type: string }
+        forceRaise: { type: boolean }
+    Insight:
+      type: object
+      required: [id, missionId, discoveryType, summary]
+      properties:
+        id: { type: string }
+        missionId: { type: string }
+        discoveryType: { type: string, enum: [class, correlation, anomaly, association] }
+        summary: { type: string }
+        graphPathEvidence: { type: string }
+        citationRef: { type: string }
+    InsightCreate:
+      type: object
+      required: [missionId, discoveryType, summary]
+      properties:
+        missionId: { type: string }
+        discoveryType: { type: string, enum: [class, correlation, anomaly, association] }
+        summary: { type: string }
+        graphPathEvidence: { type: string }
+        citationRef: { type: string }
+    Prediction:
+      type: object
+      required: [id, missionId, summary, measurementStale]
+      properties:
+        id: { type: string }
+        missionId: { type: string }
+        insightId: { type: string }
+        summary: { type: string }
+        confidence: { type: number, format: float }
+        measurementStale: { type: boolean }
+        staleReason: { type: string }
+    PredictionCreate:
+      type: object
+      required: [missionId, summary]
+      properties:
+        missionId: { type: string }
+        insightId: { type: string }
+        summary: { type: string }
+        confidence: { type: number, format: float }
+        measurementStale: { type: boolean }
+        staleReason: { type: string }
+    SteeringAction:
+      type: object
+      required: [id, missionId, status, authorisationTier]
+      properties:
+        id: { type: string }
+        missionId: { type: string }
+        predictionId: { type: string }
+        commandSummary: { type: string }
+        authorisationTier: { type: string, enum: [recommend_only, supervised, bounded_autonomy] }
+        status: { type: string, enum: [proposed, approved, rejected, queued, executed] }
+        activityPlanConflict: { type: boolean }
+    SteeringActionCreate:
+      type: object
+      required: [missionId, commandSummary, authorisationTier]
+      properties:
+        missionId: { type: string }
+        predictionId: { type: string }
+        commandSummary: { type: string }
+        authorisationTier: { type: string, enum: [recommend_only, supervised, bounded_autonomy] }
+    MipsAuditReport:
+      type: object
+      properties:
+        missionId: { type: string }
+        period: { type: string }
+        measurements: { type: integer }
+        alertsRaised: { type: integer }
+        alertsSuppressed: { type: integer }
+        steeringExecuted: { type: integer }
+        medianMeasureToSteerSeconds: { type: number, format: float }
+        falsePositiveRate: { type: number, format: float }
+
+    DataEnvelopeMission:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/Mission' }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+    ListEnvelopeMission:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/Mission' }
+            nextCursor: { type: string }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+
+
+    DataEnvelopeMeasurement:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/Measurement' }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+    ListEnvelopeMeasurement:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/Measurement' }
+            nextCursor: { type: string }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+
+
+    DataEnvelopeSentinelModel:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/SentinelModel' }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+    ListEnvelopeSentinelModel:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/SentinelModel' }
+            nextCursor: { type: string }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+
+
+    DataEnvelopeSentinelAlert:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/SentinelAlert' }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+    ListEnvelopeSentinelAlert:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/SentinelAlert' }
+            nextCursor: { type: string }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+
+
+    DataEnvelopeInsight:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/Insight' }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+    ListEnvelopeInsight:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/Insight' }
+            nextCursor: { type: string }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+
+
+    DataEnvelopePrediction:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/Prediction' }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+    ListEnvelopePrediction:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/Prediction' }
+            nextCursor: { type: string }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+
+
+    DataEnvelopeSteeringAction:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/SteeringAction' }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+    ListEnvelopeSteeringAction:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/SteeringAction' }
+            nextCursor: { type: string }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+
+
+    DataEnvelopeMipsAuditReport:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: '#/components/schemas/MipsAuditReport' }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+    ListEnvelopeMipsAuditReport:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/MipsAuditReport' }
+            nextCursor: { type: string }
+        meta: { $ref: '#/components/schemas/ResponseMeta' }
+
